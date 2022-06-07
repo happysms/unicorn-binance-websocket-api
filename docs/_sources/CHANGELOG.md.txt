@@ -7,7 +7,67 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 [Discussions about unicorn-binance-websocket-api releases!](https://github.com/LUCIT-Systems-and-Development/unicorn-binance-websocket-api/discussions/categories/releases)
 
-## 1.39.0.dev (development stage/unreleased/unstable)
+## 1.41.0.dev (development stage/unreleased/unstable)
+
+## 1.41.0
+### Added
+- `debug` (bool) parameter to `BinanceWebSocketApiManager()`
+- `manager.get_debug_log()`
+- `manager.set_socket_is_ready()`
+- `manager.set_socket_is_not_ready()`
+- `_handle_task_result()` - a callback for eventtasks to retrive exceptions from within the asyncio loop.
+### Changed
+- `get_new_stream_id()` to `get_new_uuid_id()`
+- Improved exception handling and restarts. This should have also positive effects to exection handling within the callback functions.
+### Fixing 
+- AsyncIO implementation and a temporary workaround for stopping userData streams 
+- TRBinance replaced old URL `stream.binance.cc` by the new URL `stream-cloud.trbinance.com` [issue#249](https://github.com/LUCIT-Systems-and-Development/unicorn-binance-websocket-api/issues/249)
+
+## 1.40.7
+Codebase equal to 1.40.5, testing azure pipe
+### Changed
+- Exclude`tools` folder from package
+
+## 1.40.6
+Codebase equal to 1.40.5, just preparing conda-forge packaging
+
+## 1.40.5
+### Fixed
+- Restart of error `sent 1011 (unexpected error) keepalive ping timeout` in sockets.py
+
+## 1.40.4
+### Changed
+- Rebalanced default ping interval and timeout as well as closing timeout
+### Removed
+- Passing of `stream_buffer_name=stream_buffer_name` to `specific_process_stream_data()` 
+
+## 1.40.3
+### Changed
+- Not catching general eception anymore - we must catch the specific exceptions: https://github.com/LUCIT-Systems-and-Development/unicorn-binance-websocket-api/blob/324f9fa191608946fb2973acc7de484e15f5030a/unicorn_binance_websocket_api/sockets.py#L220
+### Fixed
+- Catch KeyError before the general exception in sockets to give better feedback within the callback function.
+- Error in coroutine loop handling
+
+## 1.40.2
+### Changed
+- default ping interval and timeout
+### Fixed
+- `TypeError` in `print_summary()`
+- typo in `print_summary()` `title` text
+- Callback implementation of `create_stream()`
+
+## 1.40.1
+- test release
+
+## 1.40.0
+### Added
+- `close_timeout_default`, `ping_interval_default`, `ping_timeout_default`
+- `socket_is_ready` system to `_restart_stream()`
+- `process_stream_data` parameter for callback function to `create_stream()`
+- `high_performance` parameter to make `create_stream()` a non blocking
+- `title` to `print_summary()` and `print_stream_info()`
+### Fixed
+- `BinanceWebSocketApiManager.stop_stream()` doesn't stop the stream immediately [issue#161](https://github.com/LUCIT-Systems-and-Development/unicorn-binance-websocket-api/issues/161)
 
 ## 1.39.0
 ### Changed
@@ -18,7 +78,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## 1.38.1
 ### Fixed 
-- [issue#131](https://github.com/LUCIT-Systems-and-Development/unicorn-binance-websocket-api/issues/131)
+- Websocket fails to reconnect [issue#131](https://github.com/LUCIT-Systems-and-Development/unicorn-binance-websocket-api/issues/131)
 
 ## 1.38.0
 ### Added

@@ -56,7 +56,7 @@ channels = {'aggTrade', 'trade', 'kline_1m', 'kline_5m', 'kline_15m', 'kline_30m
 arr_channels = {'!miniTicker', '!ticker', '!bookTicker'}
 
 logging.getLogger("unicorn_binance_websocket_api")
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     filename=os.path.basename(__file__) + '.log',
                     format="{asctime} [{levelname:8}] {process} {thread} {module}: {message}",
                     style="{")
@@ -72,19 +72,17 @@ def print_stream_data_from_stream_buffer(binance_websocket_api_manager):
             time.sleep(0.01)
 
 
-# create instance of BinanceWebSocketApiManager
-#binance_websocket_api_manager = BinanceWebSocketApiManager(throw_exception_if_unrepairable=True)
-binance_websocket_api_manager = BinanceWebSocketApiManager(throw_exception_if_unrepairable=False)
-
-print("starting monitoring api!")
-binance_websocket_api_manager.start_monitoring_api()
-
 try:
     binance_rest_client = unicorn_binance_rest_api.BinanceRestApiManager(binance_api_key, binance_api_secret)
-    binance_websocket_api_manager = BinanceWebSocketApiManager()
+    binance_websocket_api_manager = BinanceWebSocketApiManager(high_performance=True,
+                                                               ping_interval_default=20,
+                                                               ping_timeout_default=20)
 except requests.exceptions.ConnectionError:
     print("No internet connection?")
     sys.exit(1)
+
+print("starting monitoring api!")
+binance_websocket_api_manager.start_monitoring_api()
 
 # start a worker process to move the received stream_data from the stream_buffer to a print function
 worker_thread = threading.Thread(target=print_stream_data_from_stream_buffer, args=(binance_websocket_api_manager,))

@@ -40,9 +40,9 @@ import asyncio
 import ujson as json
 import logging
 import sys
-import time
 import uuid
 import websockets
+# import websockets.speedups
 
 logger = logging.getLogger("unicorn_binance_websocket_api")
 
@@ -110,9 +110,17 @@ class BinanceWebSocketApiSocket(object):
                         max_subscriptions_per_second = self.manager.max_send_messages_per_second - \
                                                        self.manager.max_send_messages_per_second_reserve
                         idle_time = 1/max_subscriptions_per_second
-                        time.sleep(idle_time)
+                        await asyncio.sleep(idle_time)
                     try:
-                        received_stream_data_json = await websocket.receive()
+                        try:
+                            received_stream_data_json = await websocket.receive()
+                        except asyncio.TimeoutError:
+                            # Timeout from `asyncio.wait_for()` which we use to keep the loop running even if we dont
+                            # receive new records via websocket.
+                            logger.debug(f"BinanceWebSocketApiSocket.start_socket({str(self.stream_id)}, "
+                                         f"{str(self.channels)}, {str(self.markets)} - Received inner "
+                                         f"asyncio.TimeoutError")
+                            continue
                         if received_stream_data_json is not None:
                             if self.output == "UnicornFy":
                                 if self.exchange == "binance.com":
@@ -138,7 +146,7 @@ class BinanceWebSocketApiSocket(object):
                                 elif self.exchange == "binance.us":
                                     received_stream_data = self.unicorn_fy.binance_us_websocket(received_stream_data_json)
                                 elif self.exchange == "trbinance.com":
-                                    received_stream_data = self.unicorn_fy.binance_tr_websocket(received_stream_data_json)
+                                    received_stream_data = self.unicorn_fy.trbinance_com_websocket(received_stream_data_json)
                                 elif self.exchange == "jex.com":
                                     received_stream_data = self.unicorn_fy.jex_com_websocket(received_stream_data_json)
                                 elif self.exchange == "binance.org":
@@ -155,8 +163,17 @@ class BinanceWebSocketApiSocket(object):
                                 stream_buffer_name = self.manager.stream_list[self.stream_id]['stream_buffer_name']
                             except KeyError:
                                 stream_buffer_name = False
-                            self.manager.process_stream_data(received_stream_data,
-                                                             stream_buffer_name=stream_buffer_name)
+                            if stream_buffer_name:
+                                # if create_stream() got a stram_buffer_name -> use it
+                                self.manager.add_to_stream_buffer(received_stream_data,
+                                                                  stream_buffer_name=stream_buffer_name)
+                            elif self.manager.specific_process_stream_data[self.stream_id] is not None:
+                                # if create_stream() got a callback function -> use it
+                                self.manager.specific_process_stream_data[self.stream_id](received_stream_data)
+                            else:
+                                # Use the default process_stream_data function provided to/by the manager class
+                                self.manager.process_stream_data(received_stream_data,
+                                                                 stream_buffer_name=stream_buffer_name)
                             if "error" in received_stream_data_json:
                                 logger.error("BinanceWebSocketApiSocket.start_socket(" +
                                              str(self.stream_id) + ") "
@@ -172,13 +189,11 @@ class BinanceWebSocketApiSocket(object):
                                     self.manager.process_stream_signals("FIRST_RECEIVED_DATA",
                                                                         self.stream_id,
                                                                         received_stream_data)
-                                    self.manager.stream_list[self.stream_id]['last_stream_signal'] = "FIRST_RECEIVED_DATA"
                                 self.manager.stream_list[self.stream_id]['last_received_data_record'] = received_stream_data
-
                     except websockets.exceptions.ConnectionClosed as error_msg:
                         logger.critical("BinanceWebSocketApiSocket.start_socket(" + str(self.stream_id) + ", " +
-                                        str(self.channels) + ", " + str(self.markets) + ") - Exception ConnectionClosed"
-                                        " - error_msg: " + str(error_msg))
+                                        str(self.channels) + ", " + str(self.markets) + ") - Exception ConnectionClosed "
+                                        "- error_msg: " + str(error_msg))
                         if "WebSocket connection is closed: code = 1008" in str(error_msg):
                             websocket.close()
                             self.manager.stream_is_crashing(self.stream_id, error_msg)
@@ -196,14 +211,6 @@ class BinanceWebSocketApiSocket(object):
                         logger.error("BinanceWebSocketApiSocket.start_socket(" + str(self.stream_id) + ", " +
                                      str(self.channels) + ", " + str(self.markets) + ") - Exception AttributeError - "
                                      "error_msg: " + str(error_msg))
-                        self.manager.stream_is_crashing(self.stream_id, str(error_msg))
-                        self.manager.set_restart_request(self.stream_id)
-                        sys.exit(1)
-
-                    except Exception as error_msg:
-                        logger.error("BinanceWebSocketApiSocket.start_socket(" + str(self.stream_id) + ", " +
-                                     str(self.channels) + ", " + str(self.markets) + ") - Exception General Exception -"
-                                                                                     " error_msg: " + str(error_msg))
                         self.manager.stream_is_crashing(self.stream_id, str(error_msg))
                         self.manager.set_restart_request(self.stream_id)
                         sys.exit(1)

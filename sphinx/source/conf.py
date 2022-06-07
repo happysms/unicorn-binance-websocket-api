@@ -27,7 +27,7 @@ author = 'LUCIT Systems and Development'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '1.39.0'
+release = '1.41.0'
 
 html_last_updated_fmt = "%b %d %Y at %H:%M (CET)"
 
@@ -89,7 +89,8 @@ pygments_style = None
 html_theme = 'python_docs_theme_technopathy'
 html_context = {'github_user_name': 'LUCIT-Systems-and-Development',
                 'github_repo_name': 'unicorn-binance-websocket-api',
-                'project_name': project}
+                'project_name': project,
+                'lucit': True}
 
 
 # Theme options are theme-specific and customize the look and feel of a theme
